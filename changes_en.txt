@@ -1,4 +1,18 @@
-﻿v1.1 20100824 version
+﻿1.2 20100826 version
+
+Bug Fixes
+---------
+	* page flashing on  jQueryUI.dialog if <option> item too lang under Firefox
+
+Additions and changes
+------------------
+	* the function return instance objcet to support chain action which are changeValues(), onChange(), reset(), resetAll().
+		eg. linkageSel.reset().changeValues([23, 2244]);
+	* using recycle pool to reuse the <option> object deleted
+
+-----------------------------------------------------------------------------------------------------
+
+v1.1 20100824 version
 
 Additions and changes
 ------------------

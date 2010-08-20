@@ -2,7 +2,7 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.1 (2010-08-24)
+ * Version 1.2 (2010-08-26)
  * @requires jQuery v1.3.2 or later
  *
  * Examples at: http://linkagesel.xiaozhong.biz
@@ -12,12 +12,12 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  */
-
 ;
 var LinkageSel = function(opts) {
 	var that = this;
-	this.bindEls = [];	// [ {elm: jqobj, defValue: 0, value: 0} ] 保存被绑定select的对象及相关信息
+	this.bindEls = [];	// [ {"obj": jqobj, "defValue": 0, "value": 0} ] 保存被绑定select的对象及相关信息
 	this.data = {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
+	this.recycle = [],	// 保存被删除的<option>对象以便复用
 	this.st = {
 			ie6:		false,
 			url:		'',			// url to ajax get datafile (only once exec)
@@ -117,13 +117,18 @@ var LinkageSel = function(opts) {
 	this.outer = {
 		// @todo 判断元素是否已绑定
 		
+		// @todo
+		// appendData: function() {},
+		
 		/**
 		 * 手动改变选单值,可选触发onchange回调函数
 		 * @param {int|Array}	一级或者多级选单值
 		 * @param {bool}		是否触发用户自定义onchange回调函数, 默认TRUE
 		 */
 		changeValues: function(parm, change) {
+			//window.setTimeout(that._changeValues, 2000, parm, change, that);	// FIX 当表单中动态更新linkageSel并且 .dialog('open')时FF下页面闪动
 			that._changeValues(parm, change);
+			return this;
 		},
 		
 		
@@ -188,17 +193,20 @@ var LinkageSel = function(opts) {
 			if (callback && typeof callback === 'function')	{
 				that.st.onChange = callback;
 			}
+			return this;
 		},
 		
 		
 		// 回复到初始状态
 		reset: function () {
 			that._reset();
+			return this;
 		},
 		
 		// 回复到初始状态,包括默认选择项及默认数据
 		resetAll: function() {
 			that._reset(true);
+			return this;
 		}
 	};
 	
@@ -240,7 +248,9 @@ LinkageSel.prototype.bind = function(selector) {
 	.change(function(e) {				// 当前对象绑定事件，change时清空下级select接着生成或填充
 //			e.stopPropagation();
 //			e.preventDefault();
-		var bindIdx = jQuery(this).data('bindIdx'),
+		var st = that.st,
+			bindEls = that,
+			bindIdx = jQuery(this).data('bindIdx'),
 			nextEl = bindEls[bindIdx+1] && bindEls[bindIdx+1].obj || null,
 			defVal = null;
 		
@@ -249,13 +259,14 @@ LinkageSel.prototype.bind = function(selector) {
 		}
 		that.clean(bindIdx);
 		that.fill(bindIdx + 1, defVal);
-		nextEl = defVal = null;
+		st = bindEls = nextEl = defVal = null;
 	});
 	
 	if (elm.is(':visible')) {
 		this.setWidth(elm);	// 先初始化'静态sel'默认宽度改善页面显示效果,等填充了内容后再判断一次
 	}
 	
+	st = bindEls = bindIdx = defValue = elm = null;
 	return true;
 };
 	
@@ -284,6 +295,7 @@ LinkageSel.prototype.creatSel = function(bindIdx, callback) {
 	if (typeof callback === 'function') {
 		callback(bindIdx, this);
 	}
+	
 	return true;
 };
 
@@ -302,7 +314,9 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		arr = [],
 		bindEl,
 		elm,
-		row;
+		row,
+		recycle = this.recycle,
+		recycleLen = recycle.length || 0;
 	
 	this.setLoader(false);
 	
@@ -312,7 +326,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 	}
 	
 	if (st.triggerValues.length) {		// changeSelectedValue()函数调用到这儿
-		selValue = st.triggerValues[bindIdx];	// 不使用shift()!! 涉及到remote
+		selValue = st.triggerValues[bindIdx] || null;	// 不使用shift()!! 涉及到remote
 	}
 	else {								// 普通调用
 		selValue = typeof selValue !== 'undefined' && selValue !== '' ? selValue : null;	// select默认值
@@ -325,6 +339,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		if (elm && elm[0] && st.autoHide) {
 			st.hideWidth && elm.hide() || elm.css('visibility', 'hidden');
 		}
+		st = bindEls = data = null;
 		return false;
 	}
 	
@@ -333,7 +348,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 
 		// change事件到底触发用户定义change事件回调函数
 		this.custCallback();
-		this.resetTrigger();	// 还原默认， 前后顺序!!
+		this.resetTrigger(true);	// 还原默认， 顺序!
 		return false;
 	}
 	else if (data === null) {	// null: 无值,可ajax获取
@@ -348,8 +363,9 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		else {
 			this.custCallback();
-			this.resetTrigger();	// 还原默认， 前后顺序!!
+			this.resetTrigger(true);	// 还原默认， 顺序!
 		}
+		st = bindEls = null;
 		return false;
 	}
 	else if (data && typeof data === 'object') {	// 有数据
@@ -369,50 +385,74 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		if (head || typeof head === 'string') {
 			head = '<option value="">' + head + '</option>';
 		}
-
+		
+		var tOption, 
+			tarr = [];
 		// 开始生成 option
 		var index = 1,
 			selectedIdx = 0;
 		for (var x in data) {
 			if (!data.hasOwnProperty(x)) { continue; }
 			row = data[x];
-			arr.push('<option value="', x, '"');
+			
+			if (recycleLen > 0) {
+				tOption = recycle.pop();
+				if (typeof tOption === 'object') { 
+					jQuery(tOption).val(x).text(row.name).removeAttr('selected');
+					tarr.push(tOption);
+				}
+				else {
+					tarr.add(jQuery('<option value="' + x + "'>" + row.name + '</option>'))
+				}
+				recycleLen--;
+			}
+			else {
+				arr.push('<option value="', x, '"');
+				arr.push('>', row.name, '</option>');
+			}
+			
 			if (selValue !== null && selValue == x) {
-				arr.push(' selected="selected"');
+				//arr.push(' selected="selected"');
 				selectedIdx = index;
 			}
-			arr.push('>', row.name, '</option>');
 			index++;
 		}
-
+		row = null;
+		
 		if (st.autoLink && index === 2) {		// 只有一个选项的直接选中 并且联动下级
 			bindEl.value = x;
-			elm.append( arr.join('') ).show().css('visibility', '');
+			elm.append(tarr).append( arr.join('') ).show().css('visibility', '');
 			setTimeout(function(){
 				elm.change();	// 手动触发以便生成下级菜单 不延迟无法触发
+				elm = null;
 			}, 0);
 		}
 		else {
-			elm.append(head + arr.join('')).show().css('visibility', '');
+			elm.append(head).append(tarr).append(arr.join('')).css('visibility', '').show();	// jQuery.append 可接受属组参数?!
 			if (selValue) {
 				setTimeout(function(){
 					elm.change();	// 有默认选择值即触发
+					elm = null;
 				}, 0);
 			}
 			if (bindIdx) {		// 第一级不执行用户定义回调函数
 				this.custCallback();
 			}
 		}
+		tarr = arr = recycle = null;
 		
-		arr = bindEl = null;
 		if (st.ie6) {
-			//IE6
 			setTimeout(function(){
 				elm[0].options[selectedIdx].selected = true;
+				elm = null;
 			}, 0);	
+		}
+		else {
+			elm[0].options[selectedIdx].selected = true;
 		}
 		this.setWidth(elm);
 	}
+	st = bindEls = data = bindEl = null;
 };
 
 
@@ -421,8 +461,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
  * @return {obj}
  */
 LinkageSel.prototype.findEntry = function(data) {
-	var st = this.st,
-		root = st.root,
+	var root = this.st.root,
 		len = root && root.length || 0;
 	
 	if (data && len) {	// 有定义默认数据入口
@@ -435,6 +474,7 @@ LinkageSel.prototype.findEntry = function(data) {
 			}
 		}
 	}
+	
 	return data;
 };
 
@@ -483,6 +523,8 @@ LinkageSel.prototype.getData = function(bindIdx) {
 			}
 		}
 	}
+	
+	st = bindEls = null;
 	return data;
 };
 	
@@ -506,7 +548,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 	if (!dv || typeof dv !== 'object'  || dv.cell === false) {	// cell===false已经尝试过无数据,直接退出
 		this.setLoader(false);
 		this.custCallback();
-		this.resetTrigger();
+		this.resetTrigger(true);
 		return false;
 	}
 	
@@ -543,7 +585,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 						dv.cell = null;	// 标记已尝试
 					}
 					that.custCallback();	// 无数据才回调用户函数
-					that.resetTrigger();
+					that.resetTrigger(true);
 				}
 			},
 			complete : function() {
@@ -573,7 +615,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 	}
 };
 	
-
+	
 LinkageSel.prototype._reset = function(type) {
 	var st = this.st,
 		bindEls = this.bindEls,
@@ -584,18 +626,20 @@ LinkageSel.prototype._reset = function(type) {
 	if (elm) {
 		this.clean(0);
 		if (defValue) {	// 有默认值
-			elm.find("option[value='" + defValue + "']").attr('selected', true).change();
+			elm.find("option[value='" + defValue + "']").eq(0).attr('selected', true);
+			elm.change();
 		}
 		else {
 			elm.attr('selectedIndex', 0).change();
 		}
 		
-		if (type ) {	// 数据也初始化
-			this.data[0].cell = this.st.data;
+		if (type) {	// 数据也初始化
+			this.data[0].cell = st.data;
 			this.clean(0);
-			this.fill(0, this.st.select[0][1]); // 生成第一个下拉内容
+			this.fill(0, st.select[0][1]); // 生成第一个下拉内容
 		}
 	}
+	st = bindEls = bindEl = elm = null;
 };
 	
 
@@ -609,9 +653,13 @@ LinkageSel.prototype.clean = function(bindIdx) {
 		bindEls = this.bindEls || [],
 		len = bindEls.length,
 		bindEl,
-		elm;
+		elm,
+		recycle = this.recycle,
+		topt;
 	
-	if (bindIdx < 0) { return false; }
+	if (bindIdx < 0) { 
+		return false; 
+	}
 			
 	if (!len || bindIdx >= st.level) {
 		this.custCallback();
@@ -621,8 +669,13 @@ LinkageSel.prototype.clean = function(bindIdx) {
 	for (var i = len - 1; i > bindIdx; i--) {
 		bindEl = bindEls[i] || {};
 		elm = bindEl.obj;
-		if (elm[0]) {
-			elm.empty();
+		if (elm[0] && elm.length) {	// ?length
+			//elm.empty().scrollTop(0);	// 重置scrollTop,否则jqueryUI.dialog会导致FF下模态窗口打开时页闪!
+			elm.scrollTop(0);
+			topt = elm.children();
+			topt.remove();
+			topt.length && ( jQuery.merge(recycle, topt.toArray()) );
+			
 			if (st.autoHide) {
 				st.hideWidth && elm.hide() || elm.css('visibility', 'hidden');
 			}
@@ -631,15 +684,15 @@ LinkageSel.prototype.clean = function(bindIdx) {
 			}
 			else if (st.minWidth) {		// 有默认最小值则恢复
 				elm.width(st.minWidth);	// 不清空宽度则可能会越变越小
-			}
+			} 
 			bindEl.value = '';
 		}
 	}
+	
 	// 更新当前对象值
-	elm = bindEls[bindIdx] && bindEls[bindIdx].obj;
-	if (elm[0]) {
-		bindEls[bindIdx].value = elm.val();	// 更新所选值,否则将无法联动
-	}
+	bindEls[bindIdx] && bindEls[bindIdx].obj && (bindEls[bindIdx].value = bindEls[bindIdx].obj.val()); // 更新所选值,否则将无法联动
+	
+	st = bindEls = bindEl = elm = topt = null;
 	return true;
 };
 	
@@ -677,6 +730,8 @@ LinkageSel.prototype.calcWidth = function(n) {
 	else {
 		n = -1;	// 清空设定值,使用自动
 	}
+	
+	st = null;
 	return n < 0 ? false : n;
 };
 	
@@ -719,7 +774,7 @@ LinkageSel.prototype.setLoader = function(flag, bindIdx) {
 		// 降序循环读取sel对象,取最后一个可见元素
 		for (var i = bindEls.length-1; i >= bindIdx; i--) {
 			tmp = bindEls[i] && bindEls[i].obj;
-			if (tmp && tmp.is(":visible")) {	// 最后一个可见元素
+			if (tmp && tmp.is(':visible')) {	// 最后一个可见元素
 				elm = tmp;
 				break;
 			}
@@ -728,14 +783,16 @@ LinkageSel.prototype.setLoader = function(flag, bindIdx) {
 			elm = bindEls[bindIdx - 1].obj;	// 没有合乎要求的则使用上一级元素作基准
 		}
 		
-		offset = elm.offset();
-		width = elm.width();
-		this.loader.offset({top: (offset.top + 1), left: (offset.left + width + 3 ) }).show();
+		if (elm.is(':visible')) {	// 外层隐藏时不loaderImg
+			offset = elm.offset();
+			width = elm.width();
+			this.loader.offset({top: (offset.top + 1), left: (offset.left + width + 3 ) }).show();
+		}
 	}
 	else {
 		this.loader && this.loader.hide();
 	}
-	
+	bindEls = elm = tmp = null;
 };
 	
 
@@ -784,6 +841,8 @@ LinkageSel.prototype._getSelectedArr = function(n) {
 		elm = bindEls[i] && bindEls[i].obj;
 		value = elm && elm[0] && elm.val();
 	}
+	
+	st = bindEls = elm = null;
 	return (arr && arr.length > 0) ? arr : null;
 };
 
@@ -826,7 +885,7 @@ LinkageSel.prototype._getSelectedData = function(key, bindIdx) {
 		pos,
 		valueArr,
 		value;
-
+	
 	// 小于0或者不是数字,直接返回
 	if (bindIdx && isNaN(bindIdx) || bindIdx < 0  ) {
 		return null;
@@ -875,8 +934,8 @@ LinkageSel.prototype._getSelectedData = function(key, bindIdx) {
 		}
 		res =  key ? res[key] : res;
 	}
-	dc = null;
-	
+
+	dc = bindEls = valueArr = null;
 	return res;
 };
 
@@ -896,47 +955,64 @@ LinkageSel.prototype._getSelectedDataArr = function(key) {
 		}
 		res[i] = data;
 	}
-	data = null;
 	
+	data = bindEls = null;
 	return res;
 };
 
 
-// 改变菜单选择项
-LinkageSel.prototype._changeValues = function(parm, change) {
-	var st = this.st,
-		triggerValues = st.triggerValues,
-		bindEls = this.bindEls,
-		len = bindEls.length,
-		v = [],
-		elm;
-	if (change === false) {
-		st.trigger = false;
+// 改变菜单选择项 trigger默认false
+LinkageSel.prototype._changeValues = function(parm, trigger, obj) {
+	if (obj && typeof obj === 'object') {
+		var that = obj;
 	}
 	else {
-		st.trigger = true;
-	}
-	if ( isNumber(parm) ) {
-		st.triggerValues = [parm];
-	}
-	else if (isArray(parm)) {
-		st.triggerValues = parm;
+		var that = this;
 	}
 	
-	this.fill(0); // 改变第一个下拉内容
+	var st = that.st,
+		triggerValues = st.triggerValues,
+		bindEls = that.bindEls,
+		len = Math.min(bindEls.length, parm.length),
+		v = [],
+		elm;
+	
+	trigger = trigger ? trigger : false;
+	if ( isNumber(parm) || typeof parm === 'string' ) {
+		parm = [parm];
+	}
+	else if (isArray(parm)) {
+		parm = parm;
+	}
+	else {
+		parm = [];	
+	}
+	that.resetTrigger(trigger, parm);
+		
+	for (var i = 0; i < len; i++) {
+		elm = bindEls[i]['obj'];
+		if (elm.val() !== parm[i]) {	// 如果数值与当前选项相同则不变更,直到第一个不相同的更改并退出循环
+			elm && elm.find("option[value='" + parm[i]  + "']").eq(0).attr('selected', true);
+			//elm.attr('selectedIndex',  elm.find("option[value='" + parm[0] + "']").attr('index') );
+			break;
+		}
+	}
+	elm.change();
 };
 
 
-//还原changeValues()对参数的修改
-LinkageSel.prototype.resetTrigger = function() {
+// 设置changeValues()相应参数
+LinkageSel.prototype.resetTrigger = function(trigger, value) {
 	var st = this.st;
-	st.triggerValues = [];
-	st.trigger = true;	// 让onChange回调函数能执行
+	trigger = trigger || typeof trigger === 'undefined' ? trigger : false;
+	value = isArray(value) ? value : (typeof value === 'undefined' ? [] : [value]);
+	st.triggerValues = value;
+	st.trigger = trigger;	// 让onChange回调函数能执行
 };
 
 
-var isArray = function(v){ return Object.prototype.toString.apply(v) === '[object Array]';}
-var isNumber = function(o) { return typeof o === 'number' && isFinite(o); }
+var isArray = function(v){ return Object.prototype.toString.apply(v) === '[object Array]';};
+var isNumber = function(o) { return typeof o === 'number' && isFinite(o); };
 
 /*
  ajax.about copy from jQuery validation plug-in 1.5.5

@@ -1,4 +1,20 @@
-﻿v1.1 20100824 version
+﻿1.2 20100826 version
+
+Bug Fixes
+---------
+	* 在jQueryUI dialog模态窗口下使用时如果下拉列表较长则多次打开窗口后再次打开时FireFox下会出现页面闪动
+
+
+Additions and changes
+------------------
+	* 以下实例方法返回实例对象可链式操作其他方法 changeValues, onChange, reset, resetAll。比如 linkageSel.reset().changeValues([23, 2244]);
+	* 使用缓冲池复用更新菜单时被删除的<option>对象
+
+-----------------------------------------------------------------------------------------------------
+
+
+v1.1 20100824 version
+
 
 Additions and changes
 ------------------
