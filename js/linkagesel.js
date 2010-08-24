@@ -1,8 +1,8 @@
 /**
- * javascript Multi Level Linkage Select
- * javascript 多级联动多功能菜单
+ * javascript Infinite Level Linkage Select
+ * javascript 无限级联动多功能菜单
  * 
- * Version 1.0 (2010-08-10)
+ * Version 1.1 (2010-08-24)
  * @requires jQuery v1.3.2 or later
  *
  * Examples at: http://linkagesel.xiaozhong.biz
@@ -19,27 +19,29 @@ var LinkageSel = function(opts) {
 	this.bindEls = [];	// [ {elm: jqobj, defValue: 0, value: 0} ] 保存被绑定select的对象及相关信息
 	this.data = {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
 	this.st = {
-			ie6: false,
-			url: '',			// url to ajax get datafile (only once exec)
-			ajax: '',			// ajax url to get level-data json 
-			autoBind: true,		// 自动生成下级<select>
-			autoHide: true,		// 自动隐藏下级菜单.若false,则可配合level固定值使用
-			hideWidth: true,	// true-display:none|| false- visibility:hidden
-			autoLink: true,		// 如果只有唯一选项则选中并联动下级
-			defVal: [],			// 默认选择项可多级
-			data: null,
-			head: 'Please select..',		// {str|''|false} 自动添加第一个选择项,非字符串或false表示不使用
-			level: 20,			// 限定层级防止死循环
-			loaderImg: 'images/ui-anim_basic_16x16.gif',
-			root: [],			// 根所在位置,决定获取数据入口.不适用于ajax模式
-			minWidth: 120,
-			maxWidth: 300,
-			fixWidth: 0,		// fix <select> width
-			select: [],			// [ ['selector', defValue], [] .. ] || 'selector'
-			selClass: '',		// 应用于自动创建的<select> class，不应用到初始化之前就存在的
-			selStyle: '',
-			onChange: false,	// callback function when change
-			err: false			// 保存出错信息供debug
+			ie6:		false,
+			url:		'',			// url to ajax get datafile (only once exec)
+			ajax:		'',			// ajax url to get level-data json 
+			autoBind:	true,		// 自动生成下级<select>
+			autoHide:	true,		// 自动隐藏下级菜单.若false,则可配合level固定值使用
+			hideWidth:	true,	// true-display:none|| false- visibility:hidden
+			autoLink:	true,		// 如果只有唯一选项则选中并联动下级
+			defVal:		[],			// 默认选择项可多级
+			data:		null,
+			head:		'请选择',		// {str|''|false} 自动添加第一个选择项,非字符串或false表示不使用
+			level:		20,			// 限定层级防止死循环
+			loaderImg:	'images/ui-anim_basic_16x16.gif',
+			root:		[],			// 根所在位置,决定获取数据入口.不适用于ajax模式
+			minWidth:	120,
+			maxWidth:	300,
+			fixWidth:	0,		// fix <select> width
+			select:		[],			// [ ['selector', defValue], [] .. ] || 'selector'
+			selClass:	'',		// 应用于自动创建的<select> class，不应用到初始化之前就存在的
+			selStyle:	'margin-left: 1px;',
+			onChange:	false,	// callback function when change
+			trigger:	true,	// onChange时是否触发用户自定义回调函数，配合 instence.changeValues()
+			triggerValues: [],	// changeValues使用的数据属组
+			err:		false			// 保存出错信息供debug
 	};
 	
 	if(opts && typeof opts === 'object') {  
@@ -82,7 +84,7 @@ var LinkageSel = function(opts) {
 	}
 	// void else 	// select: [ 'selctor1', 'selctor2' ]
 	
-	if (typeof this.st.defVal === 'number') {
+	if ( isNumber(this.st.defVal) ) {
 		this.st.defVal = [this.st.defVal];
 	}
 	else if (!isArray(this.st.defVal)) {
@@ -90,7 +92,7 @@ var LinkageSel = function(opts) {
 	}
 	// void [n1, n2]
 	
-	if (typeof this.st.root === 'number' || !isNaN(+this.st.root)) {
+	if ( isNumber(this.st.root)  || !isNaN(+this.st.root)) {
 		this.st.root = [this.st.root];
 	}
 	else if (!isArray(this.st.root)) {
@@ -99,7 +101,7 @@ var LinkageSel = function(opts) {
 	
 	var selLen = this.st.select.length;
 	if (selLen < 1) {
-		alert('no object bind to LinkageSel()!');
+		alert('没有对象被绑定到mLinkageSel()!');
 		return false;
 	}
 	for (var i = 0; i < selLen; i++) {
@@ -113,6 +115,18 @@ var LinkageSel = function(opts) {
 	this.fill(0, this.st.defVal[0]); // 生成第一个下拉内容
 	
 	this.outer = {
+		// @todo 判断元素是否已绑定
+		
+		/**
+		 * 手动改变选单值,可选触发onchange回调函数
+		 * @param {int|Array}	一级或者多级选单值
+		 * @param {bool}		是否触发用户自定义onchange回调函数, 默认TRUE
+		 */
+		changeValues: function(parm, change) {
+			that._changeValues(parm, change);
+		},
+		
+		
 		/**
 		 * 获得select选择value
 		 * @param {int} idx[option]<p>
@@ -189,6 +203,7 @@ var LinkageSel = function(opts) {
 	};
 	
 	return this.outer;
+	
 };
 
 
@@ -271,12 +286,13 @@ LinkageSel.prototype.creatSel = function(bindIdx, callback) {
 	}
 	return true;
 };
-	
+
+
 	
 /**
  * 生成option填充select
  * @param {int} bindIdx	bindEls属组索引值
- * @param {int} selValue	匹配selected条目的值
+ * @param {int|array} selValue	匹配selected条目的值, 但函数内优先使用st.triggerValues[bindIdx]的值
  */
 LinkageSel.prototype.fill = function (bindIdx, selValue) {
 	var bindEls = this.bindEls,
@@ -289,13 +305,19 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		row;
 	
 	this.setLoader(false);
+	
 	if (bindIdx >= st.level) {
 		this.custCallback();
 		return false;
 	}
 	
-	selValue = typeof selValue !== 'undefined' && selValue !== '' ? selValue : null;	// select默认值
-	
+	if (st.triggerValues.length) {		// changeSelectedValue()函数调用到这儿
+		selValue = st.triggerValues[bindIdx];	// 不使用shift()!! 涉及到remote
+	}
+	else {								// 普通调用
+		selValue = typeof selValue !== 'undefined' && selValue !== '' ? selValue : null;	// select默认值
+	}
+
 	// 有上级select但上级无选定值则不操作直接跳过
 	if ( bindIdx > 0 && (bindEls[bindIdx - 1].value === null || bindEls[bindIdx - 1].value === '') ) {
 		bindEl = bindEls[bindIdx] || {};
@@ -308,8 +330,10 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 	
 	if (data === false) {	// false: ajax尝试无值,以后不再尝试
 		this.clean(bindIdx - 1);
+
 		// change事件到底触发用户定义change事件回调函数
 		this.custCallback();
+		this.resetTrigger();	// 还原默认， 前后顺序!!
 		return false;
 	}
 	else if (data === null) {	// null: 无值,可ajax获取
@@ -324,6 +348,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		else {
 			this.custCallback();
+			this.resetTrigger();	// 还原默认， 前后顺序!!
 		}
 		return false;
 	}
@@ -479,8 +504,9 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 	data = this.getData(pBindIdx);
 	dv = data[bindValue];
 	if (!dv || typeof dv !== 'object'  || dv.cell === false) {	// cell===false已经尝试过无数据,直接退出
-		that.setLoader(false);
-		that.custCallback();
+		this.setLoader(false);
+		this.custCallback();
+		this.resetTrigger();
 		return false;
 	}
 	
@@ -517,6 +543,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 						dv.cell = null;	// 标记已尝试
 					}
 					that.custCallback();	// 无数据才回调用户函数
+					that.resetTrigger();
 				}
 			},
 			complete : function() {
@@ -715,6 +742,8 @@ LinkageSel.prototype.setLoader = function(flag, bindIdx) {
 // 执行用户自定义change事件末回调函数
 LinkageSel.prototype.custCallback = function() {
 	var st = this.st;
+	if (!st.trigger) { return;}
+	
 	if (this.innerCallback && typeof this.innerCallback === 'function') {
 		this.innerCallback(this);		// 把实例对象传递给回调函数
 	}
@@ -873,5 +902,63 @@ LinkageSel.prototype._getSelectedDataArr = function(key) {
 };
 
 
-var isArray = function(v){ return Object.prototype.toString.apply(v) === '[object Array]';};
-var isNumber = function(o) { return typeof o === 'number' && isFinite(o); };
+// 改变菜单选择项
+LinkageSel.prototype._changeValues = function(parm, change) {
+	var st = this.st,
+		triggerValues = st.triggerValues,
+		bindEls = this.bindEls,
+		len = bindEls.length,
+		v = [],
+		elm;
+	if (change === false) {
+		st.trigger = false;
+	}
+	else {
+		st.trigger = true;
+	}
+	if ( isNumber(parm) ) {
+		st.triggerValues = [parm];
+	}
+	else if (isArray(parm)) {
+		st.triggerValues = parm;
+	}
+	
+	this.fill(0); // 改变第一个下拉内容
+};
+
+
+//还原changeValues()对参数的修改
+LinkageSel.prototype.resetTrigger = function() {
+	var st = this.st;
+	st.triggerValues = [];
+	st.trigger = true;	// 让onChange回调函数能执行
+};
+
+
+var isArray = function(v){ return Object.prototype.toString.apply(v) === '[object Array]';}
+var isNumber = function(o) { return typeof o === 'number' && isFinite(o); }
+
+/*
+ ajax.about copy from jQuery validation plug-in 1.5.5
+ http://bassistance.de/jquery-plugins/jquery-plugin-validation/
+ http://docs.jquery.com/Plugins/Validation 
+ */
+//ajax mode: abort
+//usage: $.ajax({ mode: "abort"[, port: "uniqueport"]});
+//if mode:"abort" is used, the previous request on that port (port can be undefined) is aborted via XMLHttpRequest.abort() 
+;(function($) {
+	var ajax = $.ajax;
+	var pendingRequests = {};
+	$.ajax = function(settings) {
+		// create settings for compatibility with ajaxSetup
+		settings = $.extend(settings, $.extend({}, $.ajaxSettings, settings));
+		var port = settings.port;
+		if (settings.mode == "abort") {
+			if ( pendingRequests[port] ) {
+				pendingRequests[port].abort();
+			}
+			return (pendingRequests[port] = ajax.apply(this, arguments));
+		}
+		return ajax.apply(this, arguments);
+	};
+})(jQuery);

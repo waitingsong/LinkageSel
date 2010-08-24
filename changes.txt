@@ -1,0 +1,10 @@
+﻿v1.1 20100824 version
+
+Additions and changes
+------------------
+	* changeValues( Integer|Array , Boolean[option=false]) 更新选单所选项目可指定多级
+	* 更改district-level1.js，district-level2.js内全局变量名称分别为 districtData1，districtData2 以便可以同时加载多个地区变量而互相不影响
+
+-----------------------------------------------------------------------------------------------------
+
+v1.0 20100810 First Release

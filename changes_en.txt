@@ -1,0 +1,9 @@
+﻿v1.1 20100824 version
+
+Additions and changes
+------------------
+	* changeValues( Integer|Array , Boolean[option=false]) 1st param can be Array to set multi level select
+
+-----------------------------------------------------------------------------------------------------
+
+v1.0 20100810 First Release
