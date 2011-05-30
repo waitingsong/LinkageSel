@@ -2,7 +2,7 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.2 (2010-08-26)
+ * Version 1.22 (2011-05-30)
  * @requires jQuery v1.3.2 or later
  *
  * Examples at: http://linkagesel.xiaozhong.biz
@@ -19,29 +19,30 @@ var LinkageSel = function(opts) {
 	this.data = {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
 	this.recycle = [],	// 保存被删除的<option>对象以便复用
 	this.st = {
-			ie6:		false,
-			url:		'',			// url to ajax get datafile (only once exec)
-			ajax:		'',			// ajax url to get level-data json 
-			autoBind:	true,		// 自动生成下级<select>
-			autoHide:	true,		// 自动隐藏下级菜单.若false,则可配合level固定值使用
-			hideWidth:	true,	// true-display:none|| false- visibility:hidden
-			autoLink:	true,		// 如果只有唯一选项则选中并联动下级
-			defVal:		[],			// 默认选择项可多级
-			data:		null,
-			head:		'请选择',		// {str|''|false} 自动添加第一个选择项,非字符串或false表示不使用
-			level:		20,			// 限定层级防止死循环
-			loaderImg:	'images/ui-anim_basic_16x16.gif',
-			root:		[],			// 根所在位置,决定获取数据入口.不适用于ajax模式
-			minWidth:	120,
-			maxWidth:	300,
-			fixWidth:	0,		// fix <select> width
-			select:		[],			// [ ['selector', defValue], [] .. ] || 'selector'
-			selClass:	'',		// 应用于自动创建的<select> class，不应用到初始化之前就存在的
-			selStyle:	'margin-left: 1px;',
-			onChange:	false,	// callback function when change
-			trigger:	true,	// onChange时是否触发用户自定义回调函数，配合 instence.changeValues()
+			ie6			: false,
+			url			: '',			// url to ajax get datafile (only once exec)
+			ajax		: '',			// ajax url to get level-data json 
+			autoBind	: true,		// 自动生成下级<select>
+			autoHide	: true,		// 自动隐藏下级菜单.若false,则可配合level固定值使用
+			hideWidth	: true,	// true-display:none|| false- visibility:hidden
+			autoLink	: true,		// 如果只有唯一选项则选中并联动下级
+			cache		: true,		// ajax cache
+			defVal		: [],			// 默认选择项可多级
+			data		: null,
+			head		: '请选择',		// {str|''|false} 自动添加第一个选择项,非字符串或false表示不使用
+			level		: 20,			// 限定层级防止死循环
+			loaderImg	: 'images/ui-anim_basic_16x16.gif',
+			root		: [],			// 根所在位置,决定获取数据入口.不适用于ajax模式
+			minWidth	: 120,
+			maxWidth	: 300,
+			fixWidth	: 0,		// fix <select> width
+			select		: [],			// [ ['selector', defValue], [] .. ] || 'selector'
+			selClass	: '',		// 应用于自动创建的<select> class，不应用到初始化之前就存在的
+			selStyle	: 'margin-left: 1px;',
+			onChange	: false,	// callback function when change
+			trigger		: true,	// onChange时是否触发用户自定义回调函数，配合 instence.changeValues()
 			triggerValues: [],	// changeValues使用的数据属组
-			err:		false			// 保存出错信息供debug
+			err			: false			// 保存出错信息供debug
 	};
 	
 	if(opts && typeof opts === 'object') {  
@@ -49,7 +50,7 @@ var LinkageSel = function(opts) {
 	}
 	
 	if (jQuery.browser.msie && jQuery.browser.version == '6.0') {
-		st.ie6 = true;
+		this.st.ie6 = true;
 	}
 
 	this.data[0].cell = this.st.data;
@@ -536,7 +537,8 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 		bindValue = pBindIdx >= 0 ? bindEls[pBindIdx].value : 0,	// 第一级菜单无内容则0
 		data,
 		dv,
-		cell;
+		cell,
+		cache = st.cache ? true : false;
 	
 	if (pBindIdx >= st.level) {
 		return false;
@@ -562,7 +564,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 	}
 	if (st.ajax) {
 		jQuery.ajax({
-			cache	: false,
+			cache	: cache,
 			type	: 'GET',
 			dataType: 'json',
 			mode	: 'abort',
