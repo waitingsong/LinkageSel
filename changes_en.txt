@@ -1,4 +1,16 @@
-﻿v1.22 20110540
+﻿v1.24 20110730
+
+changes
+------------------
+	* jQuery requirs update to v1.6
+
+Bug Fixes
+---------
+	* ie6 delay problem，DEMO9 works not
+	* <option> construct compatibility by string concat
+
+-----------------------------------------------------------------------------------------------------
+v1.22 20110540
 
 Bug Fixes
 ---------

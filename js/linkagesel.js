@@ -2,8 +2,8 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.22 (2011-05-30)
- * @requires jQuery v1.3.2 or later
+ * Version 1.24 (2011-08-01)
+ * @requires jQuery v1.6.0 or later
  *
  * Examples at: http://linkagesel.xiaozhong.biz
  * @Author waiting@xiaozhong.biz
@@ -14,10 +14,10 @@
  */
 ;
 var LinkageSel = function(opts) {
-	var that = this;
-	this.bindEls = [];	// [ {"obj": jqobj, "defValue": 0, "value": 0} ] 保存被绑定select的对象及相关信息
-	this.data = {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
-	this.recycle = [],	// 保存被删除的<option>对象以便复用
+	var that		= this;
+	this.bindEls	= [];	// [ {"obj": jqobj, "defValue": 0, "value": 0} ] 保存被绑定select的对象及相关信息 value当前值
+	this.data		= {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
+	this.recycle	= [],	// 保存被删除的<option>对象以便复用
 	this.st = {
 			ie6			: false,
 			url			: '',			// url to ajax get datafile (only once exec)
@@ -40,7 +40,7 @@ var LinkageSel = function(opts) {
 			selClass	: '',		// 应用于自动创建的<select> class，不应用到初始化之前就存在的
 			selStyle	: 'margin-left: 1px;',
 			onChange	: false,	// callback function when change
-			trigger		: true,	// onChange时是否触发用户自定义回调函数，配合 instence.changeValues()
+			trigger		: true,	// onChange时是否触发用户自定义回调函数，配合 instance.changeValues()
 			triggerValues: [],	// changeValues使用的数据属组
 			err			: false			// 保存出错信息供debug
 	};
@@ -58,9 +58,9 @@ var LinkageSel = function(opts) {
 	this.innerCallback = this.st.onChange;
 	/* 清空供用户在实例化之后再定义
 	 *  eg. var linkageSel = new LinkageSel(opts);
-	 *  linkageSel.onChange(function(object) {
+	 *  linkageSel.onChange(function(instance) {
 	 *  	// do something
-	 *  	object 为 instence
+	 *  	instance 为 instance
 	 *  });
 	 * 
 	 */ 
@@ -128,7 +128,7 @@ var LinkageSel = function(opts) {
 		 */
 		changeValues: function(parm, change) {
 			//window.setTimeout(that._changeValues, 2000, parm, change, that);	// FIX 当表单中动态更新linkageSel并且 .dialog('open')时FF下页面闪动
-			that._changeValues(parm, change);
+			that._changeValues(parm, change); // 2parm?
 			return this;
 		},
 		
@@ -161,13 +161,13 @@ var LinkageSel = function(opts) {
 		 * 	空则返回当前最后一个有选择项选单的选项项值对象包
 		 * 	</p>
 		 * 
-		 * @return {object|str|null}<p>
+		 * @return {instance|str|null}<p>
 		 *  未指定key返回整个对象: 
 		 *  {'name': 名称
 		 *   'val': 值
 		 *   'others': 其他值
 		 *  }
-		 *  指定key返回对象关联值: object[key]
+		 *  指定key返回对象关联值: instance[key]
 		 *  无数据、数据对象无指定key、指定<select>无选择,返回null
 		 *  </p>
 		 */
@@ -246,9 +246,10 @@ LinkageSel.prototype.bind = function(selector) {
 	});
 		
 	elm.data('bindIdx', bindIdx)	// 在DOM元素上保存index值,和bindEls中对应
-	.change(function(e) {				// 当前对象绑定事件，change时清空下级select接着生成或填充
+	.change(that, function(e) {				// 当前对象绑定事件，change时清空下级select接着生成或填充
 //			e.stopPropagation();
 //			e.preventDefault();
+//			alert(that.toSource());
 		var st = that.st,
 			bindEls = that,
 			bindIdx = jQuery(this).data('bindIdx'),
@@ -286,9 +287,9 @@ LinkageSel.prototype.creatSel = function(bindIdx, callback) {
 		return false;
 	}
 	
-	var id = 'linkagesel_' + (+ new Date()),
+	var id = 'linkagesel_' + (''+Math.random()).slice(-6),
 		str = '<select id="' + id + '" style="display: none;'  + st.selStyle + '" class="' + st.selClass + '" ></select>',
-		elm = bindEls[bindIdx - 1].obj.after(str);
+		elm = bindEls[bindIdx - 1]['obj'].after(str);
 	
 	st.select.push( ['#' + id] );		// 保存新条目
 	this.bind( '#' + id );			// 绑定新生成的select对象
@@ -312,7 +313,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		st = this.st,
 		head = st.head,
 		data = this.getData(bindIdx),
-		arr = [],
+		tarr = [],
 		bindEl,
 		elm,
 		row,
@@ -320,12 +321,11 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		recycleLen = recycle.length || 0;
 	
 	this.setLoader(false);
-	
 	if (bindIdx >= st.level) {
 		this.custCallback();
 		return false;
 	}
-	
+
 	if (st.triggerValues.length) {		// changeSelectedValue()函数调用到这儿
 		selValue = st.triggerValues[bindIdx] || null;	// 不使用shift()!! 涉及到remote
 	}
@@ -356,10 +356,10 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		// this.clean(bindIdx - 1);	// 不需要
 		if (st.url || st.ajax) {	// getjson|ajax get
 			this.setLoader(true, bindIdx);	
-			this.getRemoteData(bindIdx - 1, function(idx, object) {	// object为实例对象
-				var defValue = object.bindEls[idx] && object.bindEls[idx].defValue;
-				object.fill(idx, defValue);
-				// obj.custCallback();	// 不需要
+			this.getRemoteData(bindIdx - 1, function(idx, instance) {	// instance为实例对象
+				var defValue = instance.bindEls[idx] && instance.bindEls[idx].defValue;
+				instance.fill(idx, defValue);
+				// instance.custCallback();	// 不需要
 			});
 		}
 		else {
@@ -387,10 +387,9 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 			head = '<option value="">' + head + '</option>';
 		}
 		
-		var tOption, 
-			tarr = [];
-		// 开始生成 option
-		var index = 1,
+		// 开始生成 <option>
+		var tOption,
+			index = 1,
 			selectedIdx = 0;
 		for (var x in data) {
 			if (!data.hasOwnProperty(x)) { continue; }
@@ -399,57 +398,57 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 			if (recycleLen > 0) {
 				tOption = recycle.pop();
 				if (typeof tOption === 'object') { 
-					jQuery(tOption).val(x).text(row.name).removeAttr('selected');
-					tarr.push(tOption);
+					//tOption = jQuery(tOption).val(x).text(row.name).removeAttr('selected').get(0) ;		// for jQuery pre 1.6
+					tOption = jQuery(tOption).val(x).text(row.name).prop('selected', false).get(0) ;	// for jQuery 1.6+
 				}
 				else {
-					tarr.add(jQuery('<option value="' + x + "'>" + row.name + '</option>'))
+					tOption = jQuery('<option>').val(x).text(row.name).get(0);
 				}
 				recycleLen--;
 			}
 			else {
-				arr.push('<option value="', x, '"');
-				arr.push('>', row.name, '</option>');
+				tOption = jQuery('<option>').val(x).text(row.name).get(0) ;
 			}
+			tarr.push(tOption);
 			
 			if (selValue !== null && selValue == x) {
-				//arr.push(' selected="selected"');
 				selectedIdx = index;
 			}
 			index++;
 		}
-		row = null;
+		row = tOption = null;
 		
 		if (st.autoLink && index === 2) {		// 只有一个选项的直接选中 并且联动下级
 			bindEl.value = x;
-			elm.append(tarr).append( arr.join('') ).show().css('visibility', '');
+			elm.append(tarr).show().css('visibility', '');
 			setTimeout(function(){
 				elm.change();	// 手动触发以便生成下级菜单 不延迟无法触发
-				elm = null;
 			}, 0);
 		}
 		else {
-			elm.append(head).append(tarr).append(arr.join('')).css('visibility', '').show();	// jQuery.append 可接受属组参数?!
-			if (selValue) {
+			elm.append(head).append(tarr).css('visibility', '').show();	// jQuery.append 可接受DOM数组参数
+			if (selValue && !st.ie6) {	// ie6 shit
 				setTimeout(function(){
 					elm.change();	// 有默认选择值即触发
-					elm = null;
 				}, 0);
 			}
 			if (bindIdx) {		// 第一级不执行用户定义回调函数
 				this.custCallback();
 			}
 		}
-		tarr = arr = recycle = null;
+		tarr = recycle = null;
 		
-		if (st.ie6) {
-			setTimeout(function(){
-				elm[0].options[selectedIdx].selected = true;
-				elm = null;
-			}, 0);	
+		if (!st.ie6) {
+			elm[0].options[selectedIdx].selected = true;
 		}
 		else {
-			elm[0].options[selectedIdx].selected = true;
+			setTimeout(function(){
+				elm[0].options[selectedIdx].selected = true;
+				if (selValue) {		// ie6 shit again!
+					elm.change();
+				}
+				elm = selValue = null;
+			}, 0);	
 		}
 		this.setWidth(elm);
 	}
@@ -628,11 +627,13 @@ LinkageSel.prototype._reset = function(type) {
 	if (elm) {
 		this.clean(0);
 		if (defValue) {	// 有默认值
-			elm.find("option[value='" + defValue + "']").eq(0).attr('selected', true);
+			//elm.find("option[value='" + defValue + "']").eq(0).attr('selected', true);
+			elm.find("option[value='" + defValue + "']").eq(0).prop('selected', true);	// for jQuery 1.6+
 			elm.change();
 		}
 		else {
-			elm.attr('selectedIndex', 0).change();
+			//elm.attr('selectedIndex', 0).change();
+			elm.prop('selectedIndex', 0).change();
 		}
 		
 		if (type) {	// 数据也初始化
@@ -674,9 +675,10 @@ LinkageSel.prototype.clean = function(bindIdx) {
 		if (elm[0] && elm.length) {	// ?length
 			//elm.empty().scrollTop(0);	// 重置scrollTop,否则jqueryUI.dialog会导致FF下模态窗口打开时页闪!
 			elm.scrollTop(0);
-			topt = elm.children();
+			topt = elm.children();		
 			topt.remove();
-			topt.length && ( jQuery.merge(recycle, topt.toArray()) );
+			//topt.length && ( jQuery.merge(recycle, topt.filter('option').toArray()) ); // <optgroup label="">  
+			topt.length && ( jQuery.merge(recycle, topt.filter('option').toArray()) ); // <optgroup label="">  
 			
 			if (st.autoHide) {
 				st.hideWidth && elm.hide() || elm.css('visibility', 'hidden');
@@ -825,7 +827,7 @@ LinkageSel.prototype._getSelectedArr = function(n) {
 	if (!len || n > len) {
 		return null;
 	}
-	n = +n - 1;
+	n = n - 1;
 	if (!n) {	// 返回级联
 		for (var i = 0; i < len; i++) {
 			elm = bindEls[i] && bindEls[i].obj;
@@ -979,7 +981,7 @@ LinkageSel.prototype._changeValues = function(parm, trigger, obj) {
 		v = [],
 		elm;
 	
-	trigger = trigger ? trigger : false;
+	trigger = trigger ? true : false;
 	if ( isNumber(parm) || typeof parm === 'string' ) {
 		parm = [parm];
 	}
@@ -994,8 +996,8 @@ LinkageSel.prototype._changeValues = function(parm, trigger, obj) {
 	for (var i = 0; i < len; i++) {
 		elm = bindEls[i]['obj'];
 		if (elm.val() !== parm[i]) {	// 如果数值与当前选项相同则不变更,直到第一个不相同的更改并退出循环
-			elm && elm.find("option[value='" + parm[i]  + "']").eq(0).attr('selected', true);
-			//elm.attr('selectedIndex',  elm.find("option[value='" + parm[0] + "']").attr('index') );
+			//elm && elm.find("option[value='" + parm[i]  + "']").eq(0).attr('selected', true);		// for jQuery pre 1.6
+			elm && elm.find("option[value='" + parm[i]  + "']").eq(0).prop('selected', true);		// for jQuery 1.6+
 			break;
 		}
 	}
@@ -1006,7 +1008,7 @@ LinkageSel.prototype._changeValues = function(parm, trigger, obj) {
 // 设置changeValues()相应参数
 LinkageSel.prototype.resetTrigger = function(trigger, value) {
 	var st = this.st;
-	trigger = trigger || typeof trigger === 'undefined' ? trigger : false;
+	trigger = trigger || typeof trigger === 'undefined' ? true : false;
 	value = isArray(value) ? value : (typeof value === 'undefined' ? [] : [value]);
 	st.triggerValues = value;
 	st.trigger = trigger;	// 让onChange回调函数能执行
