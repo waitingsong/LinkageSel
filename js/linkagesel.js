@@ -2,8 +2,8 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.24 (2011-08-01)
- * @requires jQuery v1.6.0 or later
+ * Version 1.3 (2013-03-04)
+ * @requires jQuery v1.6.0 or newer
  *
  * Examples at: http://linkagesel.xiaozhong.biz
  * @Author waiting@xiaozhong.biz
@@ -19,8 +19,9 @@ var LinkageSel = function(opts) {
 	this.data		= {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
 	this.recycle	= [],	// 保存被删除的<option>对象以便复用
 	this.st = {
-			ie6			: false,
-			url			: '',			// url to ajax get datafile (only once exec)
+			mvcQuery	: false,		// false: 'url?id=n' ; true: 'url/n'
+			ie6			: false,		// ie6-8 TRUE when jQuery1.9
+			url			: '',			// url to get ALL data (only once execute)
 			ajax		: '',			// ajax url to get level-data json 
 			autoBind	: true,		// 自动生成下级<select>
 			autoHide	: true,		// 自动隐藏下级菜单.若false,则可配合level固定值使用
@@ -49,8 +50,16 @@ var LinkageSel = function(opts) {
 		jQuery.extend(this.st, opts); 
 	}
 	
-	if (jQuery.browser.msie && jQuery.browser.version == '6.0') {
-		this.st.ie6 = true;
+	//if (jQuery.browser.msie && jQuery.browser.version == '6.0') {
+	//	this.st.ie6 = true;
+	//}
+	if (/msie/.test(navigator.userAgent.toLowerCase())) {
+		if (jQuery.browser && jQuery.browser.version && jQuery.browser.version == '6.0') {
+			this.st.ie6 = true;	// ie6
+		}
+		else if (!$.support.leadingWhitespace) {
+			this.st.ie6 = true;	// ie6-8! jQuery 1.9+
+		}
 	}
 
 	this.data[0].cell = this.st.data;
@@ -70,7 +79,7 @@ var LinkageSel = function(opts) {
 	var loader = jQuery('#linkagesel_loader');
 	if (!loader || !loader[0]) {
 		jQuery(document.body).append('<img id="linkagesel_loader" style="display: none; position: absolute;"  src="' + 
-				this.st.loaderImg || 'ui-anim_basic_16x16.gif' + '" />');
+				encodeURI(this.st.loaderImg || 'ui-anim_basic_16x16.gif') + '" />');
 		this.loader = jQuery('#linkagesel_loader') || null;
 	}
 	else {
@@ -427,7 +436,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		else {
 			elm.append(head).append(tarr).css('visibility', '').show();	// jQuery.append 可接受DOM数组参数
-			if (selValue && !st.ie6) {	// ie6 shit
+			if (selValue && !st.ie6) {	// ie6 
 				setTimeout(function(){
 					elm.change();	// 有默认选择值即触发
 				}, 0);
@@ -444,7 +453,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		else {
 			setTimeout(function(){
 				elm[0].options[selectedIdx].selected = true;
-				if (selValue) {		// ie6 shit again!
+				if (selValue) {		// ie6
 					elm.change();
 				}
 				elm = selValue = null;
@@ -562,13 +571,13 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 		}
 	}
 	if (st.ajax) {
-		jQuery.ajax({
+		var settings = {
 			cache	: cache,
 			type	: 'GET',
 			dataType: 'json',
 			mode	: 'abort',
-			url		: st.ajax,
-			data	: {id: bindValue},
+		//	url		: st.ajax,
+		//	data	: {id: bindValue},
 			context	: that,
 			success	: function(resp) {
 				that.setLoader(false);
@@ -592,7 +601,17 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 			complete : function() {
 				that.setLoader(false);
 			}
-		});
+
+		};
+		if (st.mvcQuery) {
+			settings.url = st.ajax + '/' + bindValue;
+		}
+		else {
+			settings.url = st.ajax;
+			settings.data = {id: bindValue};
+		}
+
+		jQuery.ajax(settings);
 	} 
 	else if(st.url) {
 		jQuery.getJSON(st.url , function(resp) {

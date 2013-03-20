@@ -1,4 +1,26 @@
-﻿v1.24 20110730
+﻿v1.30 20130305
+
+Add Features
+---------
+	+ Add setting key 'mvcQuery' (bool) default false. ajax request url compatible to MVC when set to true,
+		eg. http://linkagesel.xiaozhong.biz/district/get_nodes/1		// true, and setting of 'ajax' set to 'district/get_nodes'
+			http://linkagesel.xiaozhong.biz/district/get_nodes.php?id=1		// false
+
+Bug Fixes
+---------
+	* generate HTML code of this.st.loaderImg . thanks to jeff-stric(jeff-stric.iteye.com)
+	* this.st.loaderImg not escaped
+
+Changes
+---------
+	* due to $.browser deprecated since jQuery v1.9, LinkageSel will trade IE6,7,8 as IE6 if no other plugin loaded such as jquery.mb.browser.js
+	http://pupunzi.open-lab.com/2013/01/17/jquery-mb-browser-reintroduce-the-removed-browser-object-in-jquery-1-9/
+	
+
+
+-----------------------------------------------------------------------------------------------------
+
+v1.24 20110730
 
 changes
 ------------------

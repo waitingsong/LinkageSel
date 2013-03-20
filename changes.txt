@@ -1,4 +1,25 @@
-﻿v1.24 20110730
+﻿v1.30 20130305
+
+Add Features
+---------
+	+ 添加mvcQuery参数(bool)，置true后ajax请求会生成符合MVC格式的URI, 比如 http://linkagesel.xiaozhong.biz/district/get_nodes/0
+		URI第一个分段district为controller控制器名，第二分段get_nodes为方法名，第三分段为id的值。此时 ajax值需要设定为MVC格式，
+		比如 ajax: 'district/get_nodes'。可与CodeIgniter等PHP框架配合使用
+
+
+Bug Fixes
+---------
+	* this.st.loaderImg HTML代码生成问题。感谢 jeff-stric(jeff-stric.iteye.com)朋友提供
+	* this.st.loaderImg 值未转义
+
+Changes
+---------
+	* 因为jQuery v1.9版本废弃了 $.browser 方法，所以如果使用jQuery1.9并且未加载第三方代码判断浏览器，则LinkageSel会把IE6-8都判断为IE6（用于事件触发）
+
+
+-----------------------------------------------------------------------------------------------------
+
+v1.24 20110730
 
 changes
 ------------------
