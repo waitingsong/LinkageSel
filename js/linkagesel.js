@@ -2,7 +2,7 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.31 (2013-03-22)
+ * Version 1.33 (2013-04-24)
  * @requires jQuery v1.6.0 or newer
  *
  * Examples at: http://linkagesel.xiaozhong.biz
@@ -14,6 +14,7 @@
  */
 ;
 var LinkageSel = function(opts) {
+	var $ = jQuery;
 	var that		= this;
 	this.bindEls	= [];	// [ {"obj": jqobj, "defValue": 0, "value": 0} ] 保存被绑定select的对象及相关信息 value当前值
 	this.data		= {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
@@ -38,23 +39,25 @@ var LinkageSel = function(opts) {
 			maxWidth	: 300,
 			fixWidth	: 0,		// fix <select> width
 			select		: [],			// [ ['selector', defValue], [] .. ] || 'selector'
-			selClass	: '',		// 应用于自动创建的<select> class，不应用到初始化之前就存在的
-			selStyle	: 'margin-left: 1px;',
+			selClass	: 'LinkageSel',		// 应用于自动创建的<select> class. 若初始化之前就存在的<select>会自动添加上
+			selStyle	: '',
 			onChange	: false,	// callback function when change
 			trigger		: true,	// onChange时是否触发用户自定义回调函数，配合 instance.changeValues()
 			triggerValues: [],	// changeValues使用的数据属组
-			err			: false			// 保存出错信息供debug
+			err			: false		// 保存出错信息供debug
 	};
 	
 	if(opts && typeof opts === 'object') {  
-		jQuery.extend(this.st, opts); 
+		$.extend(this.st, opts); 
 	}
+
+	this.st.selClass = $.trim(this.st.selClass);
 	
-	//if (jQuery.browser.msie && jQuery.browser.version == '6.0') {
+	//if ($.browser.msie && $.browser.version == '6.0') {
 	//	this.st.ie6 = true;
 	//}
 	if (/msie/.test(navigator.userAgent.toLowerCase())) {
-		if (jQuery.browser && jQuery.browser.version && jQuery.browser.version == '6.0') {
+		if ($.browser && $.browser.version && $.browser.version == '6.0') {
 			this.st.ie6 = true;	// ie6
 		}
 		else if (!$.support.leadingWhitespace) {
@@ -76,11 +79,11 @@ var LinkageSel = function(opts) {
 	this.st.onChange = false;	
 	
 	
-	var loader = jQuery('#linkagesel_loader');
+	var loader = $('#linkagesel_loader');
 	if (!loader || !loader[0]) {
-		jQuery(document.body).append('<img id="linkagesel_loader" style="display: none; position: absolute;"  src="' + 
+		$(document.body).append('<img id="linkagesel_loader" style="display: none; position: absolute;"  src="' + 
 				encodeURI(this.st.loaderImg || 'ui-anim_basic_16x16.gif') + '" />');
-		this.loader = jQuery('#linkagesel_loader') || null;
+		this.loader = $('#linkagesel_loader') || null;
 	}
 	else {
 		this.loader = loader;
@@ -246,6 +249,8 @@ LinkageSel.prototype.bind = function(selector) {
 	if (!elm[0] || !elm.is('select')) {
 		return false;
 	}
+
+	st.selClass && (! elm.hasClass(st.selClass)) && elm.addClass(st.selClass);
 	
 	// 将绑定的元素放入数组
 	bindEls.push({
@@ -802,11 +807,11 @@ LinkageSel.prototype.setLoader = function(flag, bindIdx) {
 				break;
 			}
 		}
-		if (!elm) {
+		if (!elm && bindIdx > 0) {
 			elm = bindEls[bindIdx - 1].obj;	// 没有合乎要求的则使用上一级元素作基准
 		}
 		
-		if (elm.is(':visible')) {	// 外层隐藏时不loaderImg
+		if (elm && elm.is(':visible')) {	// 外层隐藏时不loaderImg
 			offset = elm.offset();
 			width = elm.width();
 			this.loader.offset({top: (offset.top + 1), left: (offset.left + width + 3 ) }).show();
