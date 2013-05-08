@@ -2,22 +2,26 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.33 (2013-04-24)
+ * Version 2.0 (2013-05-08)
  * @requires jQuery v1.6.0 or newer
  *
  * Examples at: http://linkagesel.xiaozhong.biz
  * @Author waiting@xiaozhong.biz
  *
+ * @copyright
+ * Copyright (C) 2013 Waiting Song
+ *
  * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  */
-;
+"use strict";
 var LinkageSel = function(opts) {
 	var $ = jQuery;
 	var that		= this;
 	this.bindEls	= [];	// [ {"obj": jqobj, "defValue": 0, "value": 0} ] 保存被绑定select的对象及相关信息 value当前值
-	this.data		= {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
+	//this.data		= {'0': {'name': 'root', val: 0, cell: {}} };		// 数据根 ajax get0时需要后台处理为获取DB第一级
+	this.data		= {'0': {}};		// 数据根 ajax get0时需要后台处理为获取DB第一级
 	this.recycle	= [],	// 保存被删除的<option>对象以便复用
 	this.st = {
 			mvcQuery	: false,		// false: 'url?id=n' ; true: 'url/n'
@@ -31,9 +35,10 @@ var LinkageSel = function(opts) {
 			cache		: true,		// ajax cache
 			defVal		: [],			// 默认选择项可多级
 			data		: null,
-			head		: '请选择',		// {str|''|false} 自动添加第一个选择项,非字符串或false表示不使用
+			head		: 'Please select..',		// {str|''|false} 自动添加第一个选择项,非字符串或false表示不使用
 			level		: 20,			// 限定层级防止死循环
 			loaderImg	: 'images/ui-anim_basic_16x16.gif',
+			loader_duration: 100,		// loaderImg show/hide()动画持续时间
 			root		: [],			// 根所在位置,决定获取数据入口.不适用于ajax模式
 			minWidth	: 120,
 			maxWidth	: 300,
@@ -44,11 +49,25 @@ var LinkageSel = function(opts) {
 			onChange	: false,	// callback function when change
 			trigger		: true,	// onChange时是否触发用户自定义回调函数，配合 instance.changeValues()
 			triggerValues: [],	// changeValues使用的数据属组
-			err			: false		// 保存出错信息供debug
+			err			: false,		// 保存出错信息供debug
+			dataReader	: {}			// 数据结构键名
 	};
 	
 	if(opts && typeof opts === 'object') {  
 		$.extend(this.st, opts); 
+	}
+
+	if (! this.st.dataReader) {
+		this.st.dataReader = {			// 数据结构键名
+				id: 'id',		// 若不存在此键名则使用对象的序列值 ，同时影响ajax URL的查询字符串的键名	
+				name: 'name',	// 用于<optio>的text值
+				cell: 'cell'	// 子元素对象的键名
+			};
+	}
+	else {
+		(typeof this.st.dataReader.id === 'undefined' || ! this.st.dataReader.id) && (this.st.dataReader.id = 'id');
+		(typeof this.st.dataReader.name === 'undefined' || ! this.st.dataReader.name) && (this.st.dataReader.name = 'name');
+		(typeof this.st.dataReader.cell === 'undefined' || ! this.st.dataReader.cell) && (this.st.dataReader.cell = 'cell');
 	}
 
 	this.st.selClass = $.trim(this.st.selClass);
@@ -65,7 +84,10 @@ var LinkageSel = function(opts) {
 		}
 	}
 
-	this.data[0].cell = this.st.data;
+	// 数据根 ajax get0时需要后台处理为获取DB第一级
+	this.data[0][this.st.dataReader.name] = 'root';
+	this.data[0][this.st.dataReader.val] = 0;
+	this.data[0][this.st.dataReader.cell] = this.st.data;
 	
 	this.innerCallback = this.st.onChange;
 	/* 清空供用户在实例化之后再定义
@@ -100,12 +122,12 @@ var LinkageSel = function(opts) {
 	if ( isNumber(this.st.defVal) ) {
 		this.st.defVal = [this.st.defVal];
 	}
-	else if (!isArray(this.st.defVal)) {
+	else if (! isArray(this.st.defVal)) {
 		this.st.defVal = [];
 	}
 	// void [n1, n2]
 	
-	if ( isNumber(this.st.root)  || !isNaN(+this.st.root)) {
+	if (isNumber(this.st.root)  || ! isNaN(+this.st.root)) {
 		this.st.root = [this.st.root];
 	}
 	else if (!isArray(this.st.root)) {
@@ -268,21 +290,22 @@ LinkageSel.prototype.bind = function(selector) {
 			bindEls = that,
 			bindIdx = jQuery(this).data('bindIdx'),
 			nextEl = bindEls[bindIdx+1] && bindEls[bindIdx+1].obj || null,
-			defVal = null;
+			selected_value = null;
 		
 		if (!nextEl || !nextEl.find('option').length ) {	// 第一次生成
-			defVal = st.defVal && st.defVal[bindIdx + 1] || null;
+			selected_value = st.defVal && st.defVal[bindIdx + 1] || null;
 		}
 		that.clean(bindIdx);
-		that.fill(bindIdx + 1, defVal);
-		st = bindEls = nextEl = defVal = null;
+		that.fill(bindIdx + 1, selected_value);
 	});
 	
 	if (elm.is(':visible')) {
 		this.setWidth(elm);	// 先初始化'静态sel'默认宽度改善页面显示效果,等填充了内容后再判断一次
 	}
+
+	// 未加载js本地数据则对一级做一次更新
+	bindIdx == 0 && ! st.data && elm.change();
 	
-	st = bindEls = bindIdx = defValue = elm = null;
 	return true;
 };
 	
@@ -372,7 +395,6 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 	else if (data === null) {	// null: 无值,可ajax获取
 		// this.clean(bindIdx - 1);	// 不需要
 		if (st.url || st.ajax) {	// getjson|ajax get
-			this.setLoader(true, bindIdx);	
 			this.getRemoteData(bindIdx - 1, function(idx, instance) {	// instance为实例对象
 				var defValue = instance.bindEls[idx] && instance.bindEls[idx].defValue;
 				instance.fill(idx, defValue);
@@ -395,7 +417,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		bindEl = bindEls[bindIdx] || {};
 		elm = bindEl.obj;
-		if (!elm || !elm[0]) {
+		if (! elm || ! elm[0]) {
 			return;
 		}
 		// elm.width('');
@@ -407,24 +429,28 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		// 开始生成 <option>
 		var tOption,
 			index = 1,
-			selectedIdx = 0;
+			selectedIdx = 0,
+			name = st.dataReader.name,
+			id = st.dataReader.id;
 		for (var x in data) {
-			if (!data.hasOwnProperty(x)) { continue; }
+			if (! data.hasOwnProperty(x)) { continue; }
 			row = data[x];
+			// 若有id键则使用id键的值作为sequence
+			typeof row[id] !== 'undefined' && row[id] && (x = row[id]);
 			
 			if (recycleLen > 0) {
 				tOption = recycle.pop();
 				if (typeof tOption === 'object') { 
 					//tOption = jQuery(tOption).val(x).text(row.name).removeAttr('selected').get(0) ;		// for jQuery pre 1.6
-					tOption = jQuery(tOption).val(x).text(row.name).prop('selected', false).get(0) ;	// for jQuery 1.6+
+					tOption = jQuery(tOption).val(x).text(row[name]).prop('selected', false).get(0) ;	// for jQuery 1.6+
 				}
 				else {
-					tOption = jQuery('<option>').val(x).text(row.name).get(0);
+					tOption = jQuery('<option>').val(x).text(row[name]).get(0);
 				}
 				recycleLen--;
 			}
 			else {
-				tOption = jQuery('<option>').val(x).text(row.name).get(0) ;
+				tOption = jQuery('<option>').val(x).text(row[name]).get(0) ;
 			}
 			tarr.push(tOption);
 			
@@ -444,7 +470,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		else {
 			elm.append(head).append(tarr).css('visibility', '').show();	// jQuery.append 可接受DOM数组参数
-			if (selValue && !st.ie6) {	// ie6在下方触发?
+			if (selValue && ! st.ie6) {	// ie6在下方触发?
 				setTimeout(function(){
 					elm.change();	// 有默认选择值即触发
 				}, 0);
@@ -454,7 +480,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		tarr = recycle = null;
 		
-		if (!st.ie6) {
+		if (! st.ie6) {
 			elm[0].options[selectedIdx].selected = true;
 		}
 		else {
@@ -477,16 +503,17 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
  * @return {obj}
  */
 LinkageSel.prototype.findEntry = function(data) {
-	var root = this.st.root,
+	var st = this.st,
+		root = st.root,
 		len = root && root.length || 0;
 	
 	if (data && len) {	// 有定义默认数据入口
 		for (var i = 0; i < len; i++) {
-			if (!root[i] || !data[ root[i] ] || !data[ root[i] ].cell) {	// 只要出现即终止
+			if (! root[i] || ! data[root[i]] || ! data[root[i]][st.dataReader.cell]) {	// 只要出现即终止
 				break;
 			}
 			else {
-				data = data[ root[i] ].cell;
+				data = data[ root[i] ][st.dataReader.cell];
 			}
 		}
 	}
@@ -508,7 +535,7 @@ LinkageSel.prototype.findEntry = function(data) {
 LinkageSel.prototype.getData = function(bindIdx) {
 	var st = this.st,
 		bindEls = this.bindEls,
-		data = this.data[0].cell,
+		data = this.data[0][st.dataReader.cell],
 		len = bindEls.length,
 		pValue,
 		key;
@@ -525,11 +552,11 @@ LinkageSel.prototype.getData = function(bindIdx) {
 	for (var i = 1; i <= bindIdx; i++ ) {// 跳过bindIdx==0/-1的情况
 		pValue = bindEls[i-1].value;
 		if (pValue && data && data[pValue]) {	// 'data[pValue] &&' 避免 root值和默认值无法组成正确路径!
-			if (data[pValue].cell === false) {
+			if (data[pValue][st.dataReader.cell] === false) {
 				data = false;
 			}
 			else {
-				data = data[pValue].cell || null;
+				data = data[pValue][st.dataReader.cell] || null;
 			}
 		}
 		else {
@@ -544,7 +571,8 @@ LinkageSel.prototype.getData = function(bindIdx) {
 	
 
 LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
-	var that = this,
+	var $ = jQuery,
+		that = this,
 		st = this.st,
 		bindEls = this.bindEls,
 		bindValue = pBindIdx >= 0 ? bindEls[pBindIdx].value : 0,	// 第一级菜单无内容则0
@@ -560,7 +588,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 	// 先获得上级菜单data路径 包括pBindIdx==-1情况
 	data = this.getData(pBindIdx);
 	dv = data[bindValue];
-	if (!dv || typeof dv !== 'object'  || dv.cell === false) {	// cell===false已经尝试过无数据,直接退出
+	if (!dv || typeof dv !== 'object'  || dv[st.dataReader.cell] === false) {	// cell===false已经尝试过无数据,直接退出
 		this.setLoader(false);
 		this.custCallback();
 		this.resetTrigger(true);
@@ -581,57 +609,64 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 			type	: 'GET',
 			dataType: 'json',
 			mode	: 'abort',
-		//	url		: st.ajax,
-		//	data	: {id: bindValue},
 			context	: that,
+			beforeSend: function() {
+				this.setLoader(pBindIdx + 1);	
+			},
 			success	: function(resp) {
-				that.setLoader(false);
+				var that = this,
+					loader_duration = that.loader_duration + 20;
+
+				setTimeout(function(){
+					that.setLoader(false);
+				}, loader_duration);
+
 				// 后台变量是以非零id为数字key的数组(默认情况), 或非数字键名数组 ,则json_encode()返回json格式str,可以直接转化为json
 				// 若后台变量是以0开始连续数字key数组, 则返回的是数组格式,不能直接转化json
-				if ( resp && typeof resp === 'object' && !isArray(resp) ) {
-					dv.cell = resp;
-					callback(pBindIdx + 1, that);	// 有数据才回调,防止展开到底之后仍旧不断触发ajax
+				if (resp && typeof resp === 'object' && ! isArray(resp) ) {
+					dv[st.dataReader.cell] = resp;
+					callback(pBindIdx + 1, this);	// 有数据才回调,防止展开到底之后仍旧不断触发ajax
 				}
 				else {
-					if (dv.cell === null) {	// 已经尝试过
-						dv.cell = false;	// false 以后不再尝试
+					if (dv[st.dataReader.cell] === null) {	// 已经尝试过
+						dv[st.dataReader.cell] = false;	// false 以后不再尝试
 					}
 					else {
-						dv.cell = null;	// 标记已尝试
+						dv[st.dataReader.cell] = null;	// 标记已尝试
 					}
 					that.custCallback();	// 无数据才回调用户函数
 					that.resetTrigger(true);
 				}
 			},
 			complete : function() {
-				that.setLoader(false);
+				this.setLoader(false);
 			}
-
 		};
 		if (st.mvcQuery) {
 			settings.url = st.ajax + '/' + bindValue;
 		}
 		else {
 			settings.url = st.ajax;
-			settings.data = {id: bindValue};
+			settings.data = {};
+			settings.data[st.dataReader.id] = bindValue;
 		}
 
-		jQuery.ajax(settings);
+		$.ajax(settings);
 	} 
 	else if(st.url) {
-		jQuery.getJSON(st.url , function(resp) {
+		$.getJSON(st.url , function(resp) {
 			that.setLoader(false);
 			if (resp && typeof resp === 'object' && !isArray(resp) ) {
-				dv.cell = resp;
+				dv[st.dataReader.cell] = resp;
 				st.url = '';	// 有数据则只读一次
 				callback(pBindIdx + 1, that);
 			}
 			else {
-				if (dv.cell === null) {
-					dv.cell = false;	
+				if (dv[st.dataReader.cell] === null) {
+					dv[st.dataReader.cell] = false;	
 				}
 				else {
-					dv.cell = null;
+					dv[st.dataReader.cell] = null;
 					st.url = '';
 				}
 				that.custCallback();
@@ -661,7 +696,7 @@ LinkageSel.prototype._reset = function(type) {
 		}
 		
 		if (type) {	// 数据也初始化
-			this.data[0].cell = st.data;
+			this.data[0][st.dataReader.cell] = st.data;
 			this.clean(0);
 			this.fill(0, st.select[0][1]); // 生成第一个下拉内容
 		}
@@ -784,16 +819,23 @@ LinkageSel.prototype.setWidth = function(elm) {
 	
 /**
  * 在当前selsect后面显示,如果当前sel不存在则上级, 如果有下级sel则为下级 ajax loader显示位置
- * @param {bool} flag	true:show, false:hide loader
- * @param {int} bindIdx 需要显示loader的select对象index
+ * @param {int} bindIdx|false 需要显示loader的select对象index, false则隐藏
  */
-LinkageSel.prototype.setLoader = function(flag, bindIdx) {
-	if (flag && this.loader) {
+LinkageSel.prototype.setLoader = function(bindIdx) {
+	var loader = this.loader;
+	if (! loader) {
+		return;
+	}
+	if (bindIdx === false) {
+		loader.offset({top: 0, left: 0}).hide();
+	}
+	else {
 		var bindEls = this.bindEls,
 			elm,
 			offset,
 			tmp,
-			width;
+			width,
+			loader_duration = this.loader_duration;
 		
 		if (!bindEls) {
 			return;
@@ -814,13 +856,15 @@ LinkageSel.prototype.setLoader = function(flag, bindIdx) {
 		if (elm && elm.is(':visible')) {	// 外层隐藏时不loaderImg
 			offset = elm.offset();
 			width = elm.width();
-			this.loader.offset({top: (offset.top + 1), left: (offset.left + width + 3 ) }).show();
+			// 必须先show()再offset 若顺序相反则offset值会自动翻倍!
+			//loader.show(350).offset({top: (parseInt(offset.top) + 3), left: (parseInt(offset.left + width + 5))});
+			loader.offset({top: (parseInt(offset.top) + 3), left: (parseInt(offset.left + width + 5))}).show(loader_duration);
 		}
+		else {
+			loader.hide(loader_duration).offset({top: 0, left: 0});
+		}
+		bindEls = elm = tmp = null;
 	}
-	else {
-		this.loader && this.loader.hide();
-	}
-	bindEls = elm = tmp = null;
 };
 	
 
@@ -905,9 +949,10 @@ LinkageSel.prototype._getSelectedValue = function(idx) {
 
 // 获得第bindIdx级（从0开始）菜单所选项目的所有值的数据对象
 LinkageSel.prototype._getSelectedData = function(key, bindIdx) {
-	var res = {},
+	var st = this.st,
+		res = {},
 		bindEls = this.bindEls,
-		data = this.data[0].cell,
+		data = this.data[0][st.dataReader.cell],
 		dc,
 		len,
 		pos,
@@ -934,7 +979,7 @@ LinkageSel.prototype._getSelectedData = function(key, bindIdx) {
 		if (value !== '' && value != null ) {
 			if (data[value]) {
 				dc = data[value];
-				data = data[value].cell;
+				data = data[value][st.dataReader.cell];
 			}
 			else {
 				dc = null;
@@ -956,7 +1001,7 @@ LinkageSel.prototype._getSelectedData = function(key, bindIdx) {
 	}
 	else {
 		for (var x in dc) {
-			if (dc.hasOwnProperty(x) && x !== 'cell') {
+			if (dc.hasOwnProperty(x) && x !== [st.dataReader.cell]) {
 				res[x] = dc[x];
 			}
 		}
@@ -1041,28 +1086,3 @@ LinkageSel.prototype.resetTrigger = function(trigger, value) {
 
 var isArray = function(v){ return Object.prototype.toString.apply(v) === '[object Array]';};
 var isNumber = function(o) { return typeof o === 'number' && isFinite(o); };
-
-/*
- ajax.about copy from jQuery validation plug-in 1.5.5
- http://bassistance.de/jquery-plugins/jquery-plugin-validation/
- http://docs.jquery.com/Plugins/Validation 
- */
-//ajax mode: abort
-//usage: $.ajax({ mode: "abort"[, port: "uniqueport"]});
-//if mode:"abort" is used, the previous request on that port (port can be undefined) is aborted via XMLHttpRequest.abort() 
-;(function($) {
-	var ajax = $.ajax;
-	var pendingRequests = {};
-	$.ajax = function(settings) {
-		// create settings for compatibility with ajaxSetup
-		settings = $.extend(settings, $.extend({}, $.ajaxSettings, settings));
-		var port = settings.port;
-		if (settings.mode == "abort") {
-			if ( pendingRequests[port] ) {
-				pendingRequests[port].abort();
-			}
-			return (pendingRequests[port] = ajax.apply(this, arguments));
-		}
-		return ajax.apply(this, arguments);
-	};
-})(jQuery);

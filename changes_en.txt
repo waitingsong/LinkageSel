@@ -1,4 +1,17 @@
-﻿v1.33 20130425
+﻿v2.0 20130508
+
+Bug Fixes
+---------
+	* ajax_loader offset vaule set wrong cause window scroll display 
+	* 1st <select> not fire ajax request when no local data passed
+
+Add Features
+---------
+	+ add setting of 'dataReader' which define the key name of data, default value is object {id: 'id', name: 'name', cell: 'cell'}.
+	detail see demo
+
+-----------------------------------------------------------------------------------------------------
+v1.33 20130425
 
 Changes
 ---------

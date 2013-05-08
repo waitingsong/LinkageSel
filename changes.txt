@@ -1,4 +1,18 @@
-﻿v1.33 20130425
+﻿v2.0 20130508
+
+Bug Fixes
+---------
+	* ajax_loader offset值不正常导致ajax请求时导致body宽度/高度巨变从而滚动条不正常
+	* 当本地未加载(js)数据全部ajax请求且defVal有值时第一级菜单无法触发ajax请求
+
+Add Features
+---------
+	+ 参数增加 dataReader，默认值为 {id: 'id', name: 'name', cell: 'cell'} 用于自定义定义数据的key键名。并且dataReader.id的值也用于生成ajax请求URL。若dataReader.id值空则id值取数据迭代的key值。详细见demo
+
+
+-----------------------------------------------------------------------------------------------------
+
+v1.33 20130425
 
 Changes
 ---------
