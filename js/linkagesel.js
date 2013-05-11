@@ -2,7 +2,7 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 1.3 (2013-03-04)
+ * Version 1.31 (2013-03-22)
  * @requires jQuery v1.6.0 or newer
  *
  * Examples at: http://linkagesel.xiaozhong.biz
@@ -256,9 +256,9 @@ LinkageSel.prototype.bind = function(selector) {
 		
 	elm.data('bindIdx', bindIdx)	// 在DOM元素上保存index值,和bindEls中对应
 	.change(that, function(e) {				// 当前对象绑定事件，change时清空下级select接着生成或填充
-//			e.stopPropagation();
-//			e.preventDefault();
-//			alert(that.toSource());
+		// e.stopPropagation();
+		// e.preventDefault();
+		// console.log(that);
 		var st = that.st,
 			bindEls = that,
 			bindIdx = jQuery(this).data('bindIdx'),
@@ -342,15 +342,18 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		selValue = typeof selValue !== 'undefined' && selValue !== '' ? selValue : null;	// select默认值
 	}
 
-	// 有上级select但上级无选定值则不操作直接跳过
+	// 触发事件的(上级)select无值或空值则不操作直接跳过
 	if ( bindIdx > 0 && (bindEls[bindIdx - 1].value === null || bindEls[bindIdx - 1].value === '') ) {
+		//console.log([bindIdx, bindEls[bindIdx -1]]);
 		bindEl = bindEls[bindIdx] || {};
 		elm = bindEl['obj'];
 		if (elm && elm[0] && st.autoHide) {
 			st.hideWidth && elm.hide() || elm.css('visibility', 'hidden');
 		}
 		st = bindEls = data = null;
-		return false;
+		this.custCallback();
+		this.resetTrigger(true);	// 还原默认， 顺序!
+		return;
 	}
 	
 	if (data === false) {	// false: ajax尝试无值,以后不再尝试
@@ -359,7 +362,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		// change事件到底触发用户定义change事件回调函数
 		this.custCallback();
 		this.resetTrigger(true);	// 还原默认， 顺序!
-		return false;
+		return;
 	}
 	else if (data === null) {	// null: 无值,可ajax获取
 		// this.clean(bindIdx - 1);	// 不需要
@@ -376,7 +379,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 			this.resetTrigger(true);	// 还原默认， 顺序!
 		}
 		st = bindEls = null;
-		return false;
+		return;
 	}
 	else if (data && typeof data === 'object') {	// 有数据
 		if (bindEls.length - 1 < bindIdx) {	// select不存在但存在待生成数据
@@ -388,7 +391,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		bindEl = bindEls[bindIdx] || {};
 		elm = bindEl.obj;
 		if (!elm || !elm[0]) {
-			return false;
+			return;
 		}
 		// elm.width('');
 			
@@ -436,14 +439,13 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		else {
 			elm.append(head).append(tarr).css('visibility', '').show();	// jQuery.append 可接受DOM数组参数
-			if (selValue && !st.ie6) {	// ie6 
+			if (selValue && !st.ie6) {	// ie6在下方触发?
 				setTimeout(function(){
 					elm.change();	// 有默认选择值即触发
 				}, 0);
 			}
-			if (bindIdx) {		// 第一级不执行用户定义回调函数
-				this.custCallback();
-			}
+			// 第一级不执行用户定义回调函数
+			bindIdx && this.custCallback();
 		}
 		tarr = recycle = null;
 		
@@ -515,21 +517,19 @@ LinkageSel.prototype.getData = function(bindIdx) {
 	
 	data = this.findEntry(data);	// ajax模式时不使用入口功能
 	
-	for (var i = 0; i <= bindIdx; i++ ) {
-		if (i > 0) {						// 跳过bindIdx==0/-1的情况
-			pValue = bindEls[i-1].value;
-			if (pValue && data && data[pValue]) {	// 'data[pValue] &&' 避免 root值和默认值无法组成正确路径!
-				if (data[pValue].cell === false) {
-					data = false;
-				}
-				else {
-					data = data[pValue].cell || null;
-				}
+	for (var i = 1; i <= bindIdx; i++ ) {// 跳过bindIdx==0/-1的情况
+		pValue = bindEls[i-1].value;
+		if (pValue && data && data[pValue]) {	// 'data[pValue] &&' 避免 root值和默认值无法组成正确路径!
+			if (data[pValue].cell === false) {
+				data = false;
 			}
 			else {
-				data = false;	// 阻止继续尝试,包括ajax尝试
-				break;
+				data = data[pValue].cell || null;
 			}
+		}
+		else {
+			data = false;	// 阻止继续尝试,包括ajax尝试
+			break;
 		}
 	}
 	
