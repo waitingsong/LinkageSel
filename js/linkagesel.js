@@ -2,7 +2,7 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 2.0 (2013-05-08)
+ * Version 2.1 (2013-05-12)
  * @requires jQuery v1.6.0 or newer
  *
  * Examples at: http://linkagesel.xiaozhong.biz
@@ -462,6 +462,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		row = tOption = null;
 		
 		if (st.autoLink && index === 2) {		// 只有一个选项的直接选中 并且联动下级
+			selectedIdx--;	// !
 			bindEl.value = x;
 			elm.append(tarr).show().css('visibility', '');
 			setTimeout(function(){
@@ -481,15 +482,14 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		tarr = recycle = null;
 		
 		if (! st.ie6) {
-			elm[0].options[selectedIdx].selected = true;
+			typeof elm[0].options[selectedIdx] === 'object' && (elm[0].options[selectedIdx].selected = true);
 		}
 		else {
 			setTimeout(function(){
-				elm[0].options[selectedIdx].selected = true;
+				typeof elm[0].options[selectedIdx] === 'object' && (elm[0].options[selectedIdx].selected = true);
 				if (selValue) {		// ie6
 					elm.change();
 				}
-				elm = selValue = null;
 			}, 0);	
 		}
 		this.setWidth(elm);
