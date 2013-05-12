@@ -1,4 +1,4 @@
-Javascript Infinite Level Linkage Selecte
+Javascript Infinite Level Linkage Select
 
 Infinite level selecte chain, support date from local or ajax request, select created dynamatically, can be set tips item as the firest <option> item, the only one item can be selected automatically, callback function, etc. 
 Details on demo: http://linkagesel.xiaozhong.biz
