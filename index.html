@@ -41,37 +41,7 @@
 
 		<h2>Update</h2>
 		<ul>
-			<li><strong>2013.05.12</strong><br /><strong>v2.1</strong> fix: selectedIdx calculate error when only one <option> item exists <br> </li>
-			<li><strong>2013.05.08</strong><br /><strong>v2.0</strong> fix: ajax_loader offset值不正常导致ajax请求时导致body宽度/高度巨变从而滚动条不正常<br>
-	当本地未加载(js)数据全部ajax请求且defVal有值时第一级菜单无法触发ajax请求 <br>
-			 add: 参数增加 dataReader，默认值为 {id: 'id', name: 'name', cell: 'cell'} 用于自定义定义数据的key键名。并且dataReader.id的值也用于生成ajax请求URL。若dataReader.id值空则id值取数据迭代的key值。详细见demo<br>
-			</li>
-			<li><strong>2013.04.25</strong><br /><strong>v1.33</strong> change: selClass设置默认值'LinkageSel'，无论是自动创建的还是预先创建的每个&lt;select&gt;对象都会拥有此class，你可以在css样式文件中定义此类的样式;<br> selStyle设置默认值改为空<br />
-			 add: 添加天津滨海新区，重庆北部新区、两江新区，辽宁沈阳市沈北新区，贵州贵阳观山湖区数据<br>
-			</li>
-			<li><strong>2013.04.10</strong><br /><strong>v1.32</strong> fix: elm not exists when bindIdx is 0<br />
-			</li>
-			<li><strong>2013.03.22</strong><br /><strong>v1.31</strong> fix: 当改变为值为null或空的选项时未执行onChange()回调函数。eg. 对于Demo2来说当从其他选项改为“请选择”时未执行回调函数<br />
-			</li>
-			<li><strong>2013.03.05</strong><br /><strong>v1.30</strong> fix: loaderImg生成并转义问题。<br />
-				add: 提供mvcQuery参数，置true后ajax请求会生成符合MVC格式的URI，可与CodeIgniter等PHP框架配合使用
- 				change: 要求jQuery v1.6及以上版本，不再提供兼容jQuery v1.6pre的版本，可自行代码以便适用于低版本jQuery
-			</li>
-			<li><strong>2011.07.31</strong><br /><strong>v1.24</strong> fix: ie6延时问题，DEMO9无法触发生成联动菜单。<br />
- 				change: 生成&lt;option&gt;方式<br />
-				update: 提供兼容jQuery v1.6+的版本，采用.prop()替代.attr()操作对象特性
-			</li>
-			<li><strong>2011.05.30</strong><br /><strong>v1.22</strong> fix: ie6判断赋值错误，导致在IE6下JS加载错误。可以在1.2版文件上直接修改jquery.linkagesel.js 54行：
-				st.ie6 = true; ------> this.ie6 = true;<br />
-				jquery.linkagesel-min.js<br />
- 				{st.ie6=true} --------->  {this.st.ie6=true}
-			</li>
-			<li><strong>2010.08.26</strong><br />更新到v1.2 解决linkageSel在jQueryUI dialog模态窗口下使用时FireFox会出现页面闪动；部分实例方法实现链式操作，
-			比如 var ls1 = new LinkageSel(opts); ls.reset().changeValues([23, 2244]); </li>
-			<li><strong>2010.08.24</strong><br />更新到v1.1 新增1个实例方法 changeValues()，更改district-level1.js，district-level2.js内全局变量名称以便
-			可以同时加载多个地区变量而互相不影响</li>
-			<li><strong>2010.08.12</strong><br />新增1个demo，下载包中提供分级区划数据</li>
-			<li><strong>2010.08.10</strong><br />发布第一版</li>
+			<li>See <a href="changes.txt" >changes</a></li>
 		</ul>
 
 		<h2>Download</h2>
