@@ -1,4 +1,12 @@
-﻿v2.1 20130512
+﻿v2.2 20140204
+
+Bug Fixes
+---------
+	* defVal setting not works during all-level data fetching from ajax. thanks xiaogui32@osc
+	
+-----------------------------------------------------------------------------------------------------
+
+v2.1 20130512
 
 Bug Fixes
 ---------

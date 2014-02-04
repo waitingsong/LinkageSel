@@ -1044,6 +1044,39 @@
 					
 					
 
+			<div class="lsdemo">
+				<h3>Demo17：ajax获取数据且多个默认值. 注意与demo7的区别</h3>
+				<div>
+					<select id="demo17" ></select>
+				</div>
+	
+				<pre class="brush: js">
+						&lt;select id="demo17">&lt;/select>
+						&lt;script>
+							var opts17 = {
+									//data: districtData,	// demo7
+									ajax: 'district_crud.php?aj=15',
+									selStyle: 'margin-left: 3px;',
+									select:  '#demo17',
+									defVal: [5, 256, 257]
+							};
+									
+							var linkageSel17 = new LinkageSel(opts17);
+						&lt;/script>
+				</pre>
+				<script>
+					$(document).ready(function(){
+						var opts17 = {
+								ajax: 'district_crud.php?aj=15',
+								selStyle: 'margin-left: 3px;',
+								select: '#demo17' ,
+								defVal: [5, 256, 257]
+						};
+						new LinkageSel(opts17);
+					});
+				</script>
+			</div>
+					
 
 		</div>
 	</div>
