@@ -2,7 +2,7 @@
 
 Bug Fixes
 ---------
-	* defVal setting not works during all-level data fetching from ajax
+	* defVal setting not works during all-level data fetching from ajax. thanks xiaogui32@osc
 	
 -----------------------------------------------------------------------------------------------------
 
