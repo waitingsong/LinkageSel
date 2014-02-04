@@ -2,14 +2,14 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 2.1 (2013-05-12)
+ * Version 2.2 (2014-02-04)
  * @requires jQuery v1.6.0 or newer
  *
  * Examples at: http://linkagesel.xiaozhong.biz
  * @Author waiting@xiaozhong.biz
  *
  * @copyright
- * Copyright (C) 2013 Waiting Song
+ * Copyright (C) 2014 Waiting Song
  *
  * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -362,6 +362,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		this.custCallback();
 		return false;
 	}
+	//console.log([999, bindIdx, selValue]);
 
 	if (st.triggerValues.length) {		// changeSelectedValue()函数调用到这儿
 		selValue = st.triggerValues[bindIdx] || null;	// 不使用shift()!! 涉及到remote
@@ -386,7 +387,6 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 	
 	if (data === false) {	// false: ajax尝试无值,以后不再尝试
 		this.clean(bindIdx - 1);
-
 		// change事件到底触发用户定义change事件回调函数
 		this.custCallback();
 		this.resetTrigger(true);	// 还原默认， 顺序!
@@ -395,10 +395,11 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 	else if (data === null) {	// null: 无值,可ajax获取
 		// this.clean(bindIdx - 1);	// 不需要
 		if (st.url || st.ajax) {	// getjson|ajax get
-			this.getRemoteData(bindIdx - 1, function(idx, instance) {	// instance为实例对象
-				var defValue = instance.bindEls[idx] && instance.bindEls[idx].defValue;
-				instance.fill(idx, defValue);
-				// instance.custCallback();	// 不需要
+			this.getRemoteData(bindIdx - 1, function(idx, inst) {	// instance为实例对象
+				typeof inst.bindEls[idx] === 'undefined' && inst.creatSel(idx);
+				var defValue = inst.bindEls[idx] && inst.bindEls[idx].defValue || null;
+				inst.fill(idx, defValue);
+				// inst.custCallback();	// 不需要
 			});
 		}
 		else {
@@ -432,6 +433,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 			selectedIdx = 0,
 			name = st.dataReader.name,
 			id = st.dataReader.id;
+
 		for (var x in data) {
 			if (! data.hasOwnProperty(x)) { continue; }
 			row = data[x];
@@ -588,7 +590,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 	// 先获得上级菜单data路径 包括pBindIdx==-1情况
 	data = this.getData(pBindIdx);
 	dv = data[bindValue];
-	if (!dv || typeof dv !== 'object'  || dv[st.dataReader.cell] === false) {	// cell===false已经尝试过无数据,直接退出
+	if (! dv || typeof dv !== 'object'  || dv[st.dataReader.cell] === false) {	// cell===false已经尝试过无数据,直接退出
 		this.setLoader(false);
 		this.custCallback();
 		this.resetTrigger(true);
@@ -620,6 +622,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 				setTimeout(function(){
 					that.setLoader(false);
 				}, loader_duration);
+				
 
 				// 后台变量是以非零id为数字key的数组(默认情况), 或非数字键名数组 ,则json_encode()返回json格式str,可以直接转化为json
 				// 若后台变量是以0开始连续数字key数组, 则返回的是数组格式,不能直接转化json
