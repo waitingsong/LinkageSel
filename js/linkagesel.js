@@ -2,10 +2,10 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 2.2 (2014-02-04)
+ * Version 2.3 (2014-09-30)
  * @requires jQuery v1.6.0 or newer
  *
- * Examples at: http://linkagesel.xiaozhong.biz
+ * Examples at: http://linkagesel.xiaozhong.biz/index_en.html
  * @Author waiting@xiaozhong.biz
  *
  * @copyright
@@ -50,6 +50,7 @@ var LinkageSel = function(opts) {
 			trigger		: true,	// onChange时是否触发用户自定义回调函数，配合 instance.changeValues()
 			triggerValues: [],	// changeValues使用的数据属组
 			err			: false,		// 保存出错信息供debug
+			abort		: false,		// ajax.abort()
 			dataReader	: {}			// 数据结构键名
 	};
 	
@@ -610,7 +611,7 @@ LinkageSel.prototype.getRemoteData = function(pBindIdx, callback) {
 			cache	: cache,
 			type	: 'GET',
 			dataType: 'json',
-			mode	: 'abort',
+			mode	: this.st.abort ? 'abort' : '',
 			context	: that,
 			beforeSend: function() {
 				this.setLoader(pBindIdx + 1);	
