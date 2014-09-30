@@ -5,6 +5,7 @@
  * Version 2.3 (2014-09-30)
  * @requires jQuery v1.6.0 or newer
  *
+ * https://github.com/waitingsong/LinkageSel
  * Examples at: http://linkagesel.xiaozhong.biz/index_en.html
  * @Author waiting@xiaozhong.biz
  *
