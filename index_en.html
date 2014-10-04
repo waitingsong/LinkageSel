@@ -1102,6 +1102,39 @@
 			</div>
 					
 
+			<div class="lsdemo">
+				<h3>Demo18：no tips, default values</h3>
+				<div>
+					<select id="demo18" ></select>
+				</div>
+	
+				<pre class="brush: js">
+						&lt;select id="demo18">&lt;/select>
+						&lt;script>
+							var opts18 = {
+									data: districtData,
+									select: '#demo18',
+									defVal: [5, 256, 257], 
+									head: false	// no tips
+							};
+									
+							var linkageSel18 = new LinkageSel(opts18);
+						&lt;/script&gt;
+				</pre>
+				<script>
+					$(document).ready(function(){
+						var opts18 = {
+								data: districtData,
+								selStyle: 'margin-left: 3px;',
+								select: '#demo18',
+								defVal: [5, 256, 257], 
+								head: false
+						};
+						new LinkageSel(opts18);
+					});
+				</script>
+			</div>	
+
 
 		</div>
 	</div>

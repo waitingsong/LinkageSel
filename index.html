@@ -1076,8 +1076,43 @@
 					});
 				</script>
 			</div>
-					
 
+
+
+			<div class="lsdemo">
+				<h3>Demo18：不使用提示条目，指定默认值</h3>
+				<div>
+					<select id="demo18" ></select>
+				</div>
+	
+				<pre class="brush: js">
+						&lt;select id="demo18">&lt;/select>
+						&lt;script>
+							var opts18 = {
+									data: districtData,
+									select: '#demo18',
+									defVal: [5, 256, 257], 
+									head: false	// 不使用自动生成提示作为菜单第一项
+							};
+									
+							var linkageSel18 = new LinkageSel(opts18);
+						&lt;/script&gt;
+				</pre>
+				<script>
+					$(document).ready(function(){
+						var opts18 = {
+								data: districtData,
+								selStyle: 'margin-left: 3px;',
+								select: '#demo18',
+								defVal: [5, 256, 257], 
+								head: false
+						};
+						new LinkageSel(opts18);
+					});
+				</script>
+			</div>	
+					
+					
 		</div>
 	</div>
 </div>
