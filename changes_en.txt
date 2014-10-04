@@ -1,4 +1,14 @@
-﻿v2.2 20140204
+﻿
+v2.3 20140930
+
+Bug Fixes
+---------
+	* Add abort of setting to control ajax.abort() default value set to false, so DEMO3 and DEMO17 both work on the same page
+	
+-----------------------------------------------------------------------------------------------------
+
+
+v2.2 20140204
 
 Bug Fixes
 ---------
