@@ -2,7 +2,7 @@
  * javascript Infinite Level Linkage Select
  * javascript 无限级联动多功能菜单
  * 
- * Version 2.3 (2014-09-30)
+ * Version 2.4 (2014-10-04)
  * @requires jQuery v1.6.0 or newer
  *
  * https://github.com/waitingsong/LinkageSel
@@ -17,6 +17,7 @@
  *   http://www.gnu.org/licenses/gpl.html
  */
 "use strict";
+
 var LinkageSel = function(opts) {
 	var $ = jQuery;
 	var that		= this;
@@ -426,7 +427,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		// elm.width('');
 			
 		if (head || typeof head === 'string') {
-			head = '<option value="">' + head + '</option>';
+			head = '<option value="">' + head.entityify() + '</option>';
 		}
 		
 		// 开始生成 <option>
@@ -1091,3 +1092,45 @@ LinkageSel.prototype.resetTrigger = function(trigger, value) {
 
 var isArray = function(v){ return Object.prototype.toString.apply(v) === '[object Array]';};
 var isNumber = function(o) { return typeof o === 'number' && isFinite(o); };
+
+if (typeof String.prototype.deentityify !== 'function') {
+	String.prototype.deentityify = function() {
+		var entity = {
+			quot	: '"',
+			'#039'	: '\'',
+			lt		: '<',
+			gt		: '>'
+		};
+			
+		return function () {
+			return this.replace(/&([^&;]+);/g, 
+				function(a, b) {
+					var r = entity[b];
+					return typeof r === 'string' ? r : a;
+				}
+			);
+		};
+	}();
+}
+
+if (typeof String.prototype.entityify !== 'function') {
+	String.prototype.entityify = function() {
+		var character = {
+			'<'		: '&lt;',
+			'>'		: '&gt;',
+			'&'		: '&amp;',
+			'"'		: '&quot;',
+			"'"		: '&#039;'
+		};
+			
+		return function () {
+			return this.replace(/[<>&"']/g, 
+				function(c) {
+					return character[c];
+				}
+			);
+		};
+	}();
+}
+
+
