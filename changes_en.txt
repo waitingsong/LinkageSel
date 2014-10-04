@@ -3,7 +3,7 @@ v2.3 20140930
 
 Bug Fixes
 ---------
-	* Add abort of setting to control ajax.abort() default value set to false, so DEMO3 and DEMO17 both work on the same page
+	* Add abort of setting to control ajax.abort() default value set to false, so DEMO3 and DEMO17 both work on the same page. thanks for 豆爸-逃逸的风<66340830@qq.com>
 	
 -----------------------------------------------------------------------------------------------------
 
