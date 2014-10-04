@@ -5,6 +5,8 @@ v2.4 20141004
 Bug Fixes
 ---------
 	* do entityify.head(). avoid problue cause by head containing < or >
+	* next <option> not show if head is false and defVal not set. next option will be gen and show on demo12
+
 	
 -----------------------------------------------------------------------------------------------------
 v2.3 20140930

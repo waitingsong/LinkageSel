@@ -426,7 +426,7 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		// elm.width('');
 			
-		if (head || typeof head === 'string') {
+		if (head || typeof head === 'string') {		// accept blank value
 			head = '<option value="">' + head.entityify() + '</option>';
 		}
 		
@@ -476,7 +476,12 @@ LinkageSel.prototype.fill = function (bindIdx, selValue) {
 		}
 		else {
 			elm.append(head).append(tarr).css('visibility', '').show();	// jQuery.append 可接受DOM数组参数
-			if (selValue && ! st.ie6) {	// ie6在下方触发?
+			if ( ! head && head !== '') {
+				setTimeout(function(){
+					elm.change();	// 无论默认选择值都触发
+				}, 0);
+			}
+			else if (selValue && ! st.ie6) {	// ie6在下方触发?
 				setTimeout(function(){
 					elm.change();	// 有默认选择值即触发
 				}, 0);
